@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Application</title>
+</head>
+<style>
+    body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100dvh;
+        margin: 0;
+        background: #352F44;
+        font-family: "Tajawal", sans-serif;
+    }
+
+    main {
+        display: flex;
+        flex-direction: column;
+        padding: 20px;
+        background: #B9B4C7;
+        font-weight: bold;
+        font-size: 1.2rem;
+        border-radius: 10px;
+        color: #352F44;
+        max-width: 80%;
+        min-width:270px;
+        position: relative;
+    }
+
+    #score-container {
+        position: absolute;
+        top: 10px;
+        right: 20px;
+    }
+
+    #timer-container {
+        position: absolute;
+        top: 10px;
+        left: 20px;
+    }
+
+    select,
+    input {
+        padding: 5px;
+        border-radius: 5px;
+        border: none;
+        outline: none;
+        font-size: 1rem;
+        font-weight: bold;
+        color:#352F44;
+    }
+    #start {
+        margin-top: 20px;
+    }
+
+    button {
+        padding: 8px 10px;
+        border-radius: 5px;
+        border: none;
+        outline: none;
+        font-size: 1.2rem;
+        font-weight: bold;
+        background: #352F44;
+        color: white;
+        ;
+        cursor: pointer;
+        font-family: "Tajawal", sans-serif;
+        transition: 0.3s;
+        border: 2px solid transparent;
+    }
+
+    button:hover {
+        background: none;
+        color: #352F44;
+        border: 2px solid #352F44;
+        text-decoration: underline;
+    }
+
+    .off {
+        background: none;
+        color: #352F44;
+        cursor: default;
+    }
+
+    .off:hover {
+        border: 2px solid transparent;
+        text-decoration: none;
+    }
+
+    #title {
+        font-size: 2rem;
+
+        text-align: center;
+    }
+
+    #question-container {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .correct {
+        border: 2px solid #352F44;
+        border-radius: 8px;
+    }
+
+    .setup-container {
+        display: flex;
+        flex-direction: column;
+
+        gap: 20px;
+    }
+
+    .setup-container>div {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+</style>
+
+<body>
+    <main>
+        <h1 id="title">Quiz Application</h1>
+        <div class="setup-container">
+            <div><span>Choose Category: </span>
+                <select name="category" id="category">
+                    <option value="">Any Category</option>
+                </select>
+            </div>
+            <div><span>Choose Difficulty: </span>
+                <select name="difficulty" id="difficulty">
+                    <option value="easy">Easy</option>
+                    <option value="medium">Medium</option>
+                    <option value="hard">Hard</option>
+                </select>
+            </div>
+            <div><span>Choose Type </span><select name="type" id="type">
+                    <option value="">Any</option>
+                    <option value="multiple">Multiple Choice</option>
+                    <option value="boolean">True/False</option>
+                </select></div>
+            <div>
+                <span>Choose Number of Questions: </span>
+                <input type="number" name="amount" id="amount" value="10">
+            </div>
+            <div>
+                <span>Minutes per Question: </span>
+                <input type="number" name="time" id="time" value="2">
+            </div>
+        </div><button id="start">Start</button>
+    </main>
+
+    <script>
+        let time, questionContainer, currentScore = 0, maxScore;
+        fetch("https://opentdb.com/api_category.php").then(res => res.json()).then(data => {
+            let categories = data.trivia_categories;
+            categories.forEach(category => {
+                document.getElementById("category").innerHTML += `<option value="${category.id}">${category.name}</option>`
+            })
+        })
+        document.getElementById("start").addEventListener("click", () => {
+            let category = document.getElementById("category").value;
+            let difficulty = document.getElementById("difficulty").value;
+            let type = document.getElementById("type").value;
+            let amount = document.getElementById("amount").value;
+            time = document.getElementById("time").value;
+            maxScore = amount;
+            let url = `https://opentdb.com/api.php?amount=${amount}`
+            if (category != "") url += `&category=${category}`;
+            if (difficulty != "") url += `&difficulty=${difficulty}`;
+            if (type != "") url += `&type=${type}`;
+            console.log(url);
+            fetch(url).then(res => res.json()).then(data => { startQuiz(data) });
+        })
+
+        async function startQuiz(data) {
+            console.log(data);
+            document.getElementsByTagName("main")[0].innerHTML = `
+                <h1 id='title'></h1>
+                <div id = "score-container">Score: <span id="score">${currentScore}</span> / ${maxScore}</div>
+                <div id = "timer-container">Time Left: <span id="timer">${time * 60}</span></div>
+                `;
+            let i = 1;
+            questionContainer = document.createElement("div");
+            questionContainer.id = "question-container";
+            document.getElementsByTagName("main")[0].appendChild(questionContainer);
+            for (question in data.results) {
+                document.getElementById("title").innerHTML = `Question ${i}`;
+                displayQuestion(data.results[question]);
+                let result = await wait(data.results[question])
+                await new Promise((resolve, reject) => {
+                    document.getElementById("submit").innerHTML = result;
+
+                    document.querySelectorAll('input[name="answer"]').forEach(input => {
+                        if (input.value == data.results[question].correct_answer) {
+                            input.parentElement.classList.add("correct");
+
+                        }
+                        console.log(input.value, data.results[question].correct_answer);
+                    })
+                    document.getElementById("submit").classList.add("off");
+                    setTimeout(() => {
+                        document.getElementById("submit").classList.remove("off");
+                        resolve();
+                    }, 1500);
+                })
+                questionContainer.innerHTML = "";
+                i++;
+                document.getElementById("timer").innerHTML = time * 60;
+            }
+            questionContainer.innerHTML = "";
+            document.getElementById("score-container").remove();
+            document.getElementById("timer-container").remove();
+            document.getElementById("title").innerHTML = `You got ${currentScore} / ${maxScore} correct answers.`;
+            let reload = document.createElement("button");
+            reload.id = "reload";
+            reload.innerHTML = "Take Another Quiz";
+            document.getElementsByTagName("main")[0].appendChild(reload);
+            document.getElementById("reload").addEventListener("click", () => {
+                location.reload();
+            })
+        }
+
+        function displayQuestion(question) {
+
+            console.log(question);
+            let questionText = document.createElement("span");
+            questionText.innerHTML = question.question;
+            questionContainer.appendChild(questionText);
+
+            let answers = question.incorrect_answers;
+            answers.push(question.correct_answer);
+            answers.sort(() => Math.random() - 0.5);
+            answers.forEach(answer => {
+                let answerContainer = document.createElement("div");
+                let answerRadio = document.createElement("input");
+                answerRadio.type = "radio";
+                answerRadio.name = "answer";
+                answerRadio.value = answer;
+                let answerText = document.createElement("span");
+                answerText.innerHTML = answer;
+                answerContainer.appendChild(answerRadio);
+                answerContainer.appendChild(answerText);
+                questionContainer.appendChild(answerContainer);
+            })
+        }
+
+        function wait(question) {
+            return new Promise((resolve, reject) => {
+                let state = "Time is up!";
+                let timer = document.getElementById("timer");
+                let interval =
+                    setInterval(() => {
+                        if (timer.innerHTML == 0) {
+                            clearInterval(interval);
+                            resolve("Time is up.");
+                        } else {
+                            timer.innerHTML--;
+                        }
+                    }, 1000);
+                let button = document.createElement("button");
+                button.innerHTML = "Submit";
+                button.id = "submit";
+                questionContainer.appendChild(button);
+
+                button.addEventListener("click", () => {
+                    let selectedAnswer = document.querySelector('input[name="answer"]:checked');
+
+                    clearInterval(interval);
+                    if (!selectedAnswer) resolve("No Selected Answer");
+                    if (selectedAnswer.value == question.correct_answer) {
+                        currentScore++;
+                        document.getElementById("score").innerHTML = currentScore;
+                        resolve("Correct Answer");
+                    } else {
+                        resolve("Incorrect Answer");
+                    }
+                }, { once: true })
+            })
+        }
+    </script>
+</body>
+</html>
