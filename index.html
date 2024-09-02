@@ -173,12 +173,12 @@
             if (category != "") url += `&category=${category}`;
             if (difficulty != "") url += `&difficulty=${difficulty}`;
             if (type != "") url += `&type=${type}`;
-            console.log(url);
+            // console.log(url);
             fetch(url).then(res => res.json()).then(data => { startQuiz(data) });
         })
 
         async function startQuiz(data) {
-            console.log(data);
+           // console.log(data);
             document.getElementsByTagName("main")[0].innerHTML = `
                 <h1 id='title'></h1>
                 <div id = "score-container">Score: <span id="score">${currentScore}</span> / ${maxScore}</div>
@@ -200,7 +200,7 @@
                             input.parentElement.classList.add("correct");
 
                         }
-                        console.log(input.value, data.results[question].correct_answer);
+                       // console.log(input.value, data.results[question].correct_answer);
                     })
                     document.getElementById("submit").classList.add("off");
                     setTimeout(() => {
@@ -227,7 +227,7 @@
 
         function displayQuestion(question) {
 
-            console.log(question);
+           // console.log(question);
             let questionText = document.createElement("span");
             questionText.innerHTML = question.question;
             questionContainer.appendChild(questionText);
